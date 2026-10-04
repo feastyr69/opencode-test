@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>opengame - Retro Arcade Portal</title>
+    <!-- Pixel art font from Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: #0b0c16;
+            color: #fff;
+            font-family: 'Space Grotesk', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(ellipse at 50% 0%, rgba(112, 197, 206, 0.15) 0%, transparent 60%),
+                radial-gradient(circle at 10% 80%, rgba(247, 208, 56, 0.08) 0%, transparent 40%),
+                linear-gradient(to bottom, #090a12, #0d0f1f);
+        }
+
+        /* Ambient scanline texture */
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 2;
+        }
+
+        /* Header styling */
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .badge {
+            display: inline-block;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 9px;
+            background: rgba(78, 192, 202, 0.15);
+            color: #4ec0ca;
+            border: 1px solid rgba(78, 192, 202, 0.4);
+            padding: 6px 14px;
+            border-radius: 20px;
+            letter-spacing: 1px;
+            margin-bottom: 18px;
+            text-transform: uppercase;
+            box-shadow: 0 0 15px rgba(78, 192, 202, 0.2);
+        }
+
+        .logo {
+            font-family: 'Press Start 2P', monospace;
+            font-size: clamp(32px, 6vw, 54px);
+            letter-spacing: 2px;
+            color: #f7d038;
+            text-shadow: 
+                4px 4px 0 #000,
+                0 0 25px rgba(247, 208, 56, 0.5),
+                0 0 45px rgba(247, 208, 56, 0.2);
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .logo span {
+            color: #4ec0ca;
+            text-shadow: 
+                4px 4px 0 #000,
+                0 0 25px rgba(78, 192, 202, 0.5);
+        }
+
+        .tagline {
+            font-size: 14px;
+            color: #8c93b0;
+            max-width: 500px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Arcade Section */
+        .section-title {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 12px;
+        }
+
+        .section-title h2 {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 14px;
+            color: #eee;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .games-count {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 10px;
+            color: #555d82;
+        }
+
+        /* Grid */
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+            gap: 28px;
+            width: 100%;
+        }
+
+        /* Game Card (Arcade Cabinet Style) */
+        .game-card {
+            background: #141727;
+            border: 2px solid #232842;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .game-card:hover {
+            transform: translateY(-8px);
+            border-color: #f7d038;
+            box-shadow: 0 15px 35px rgba(247, 208, 56, 0.15), 0 0 0 1px #f7d038;
+        }
+
+        /* Card Preview Banner */
+        .card-preview {
+            height: 160px;
+            background: linear-gradient(135deg, #70c5ce, #4ec0ca);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-bottom: 2px solid #232842;
+        }
+
+        /* Animated pixel clouds in card banner */
+        .preview-cloud {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 20px;
+            filter: blur(0.5px);
+        }
+
+        .cloud-1 {
+            width: 60px; height: 20px;
+            top: 25px; left: 15px;
+            box-shadow: 20px -8px 0 6px rgba(255, 255, 255, 0.8);
+        }
+
+        .cloud-2 {
+            width: 70px; height: 22px;
+            bottom: 35px; right: 20px;
+            box-shadow: 25px -10px 0 8px rgba(255, 255, 255, 0.8);
+        }
+
+        /* Mini Retro Bird SVG/Design inside card */
+        .bird-sprite {
+            position: relative;
+            width: 52px;
+            height: 40px;
+            background: #f7d038;
+            border-radius: 50%;
+            border: 3px solid #000;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+            animation: miniBob 2s infinite ease-in-out;
+            z-index: 2;
+        }
+
+        .bird-sprite .eye {
+            position: absolute;
+            top: 4px;
+            right: 12px;
+            width: 14px;
+            height: 14px;
+            background: #fff;
+            border-radius: 50%;
+            border: 2px solid #000;
+        }
+
+        .bird-sprite .pupil {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            width: 5px;
+            height: 5px;
+            background: #000;
+            border-radius: 50%;
+        }
+
+        .bird-sprite .beak {
+            position: absolute;
+            top: 15px;
+            right: -10px;
+            width: 0;
+            height: 0;
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+            border-left: 12px solid #e67e22;
+        }
+
+        .bird-sprite .wing {
+            position: absolute;
+            top: 14px;
+            left: 6px;
+            width: 20px;
+            height: 12px;
+            background: #f39c12;
+            border-radius: 10px;
+            border: 2px solid #000;
+        }
+
+        @keyframes miniBob {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(-6deg); }
+        }
+
+        /* Mini Retro Spaceship SVG/Design inside card */
+        .ship-sprite {
+            position: relative;
+            width: 44px;
+            height: 48px;
+            animation: miniBob 2s infinite ease-in-out;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ship-sprite svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 8px #00f3ff) drop-shadow(0 0 15px rgba(0, 243, 255, 0.6));
+        }
+
+        /* Card Content */
+        .card-body {
+            padding: 22px 20px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .game-title {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 14px;
+            color: #fff;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .game-status {
+            font-size: 8px;
+            color: #73c33a;
+            background: rgba(115, 195, 58, 0.15);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(115, 195, 58, 0.4);
+        }
+
+        .game-description {
+            font-size: 13px;
+            color: #9299b8;
+            line-height: 1.5;
+            margin-bottom: 22px;
+        }
+
+        .card-footer {
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .play-btn {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 10px;
+            background: #f7d038;
+            color: #000;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-weight: 700;
+            text-transform: uppercase;
+            box-shadow: 0 4px 0 #bfa022;
+            transition: all 0.15s ease;
+        }
+
+        .game-card:hover .play-btn {
+            background: #ffe366;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #bfa022;
+        }
+
+        .features-tags {
+            font-size: 11px;
+            color: #656d94;
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Coming Soon Cards */
+        .coming-soon {
+            opacity: 0.55;
+            cursor: not-allowed;
+            border-style: dashed;
+        }
+
+        .coming-soon:hover {
+            transform: none;
+            border-color: #232842;
+            box-shadow: none;
+        }
+
+        .coming-soon .card-preview {
+            background: #191c30;
+        }
+
+        .lock-icon {
+            font-size: 32px;
+            color: #3b4267;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 60px;
+            text-align: center;
+            font-size: 11px;
+            color: #4b5278;
+            font-family: 'Press Start 2P', monospace;
+            line-height: 2;
+        }
+
+        footer span {
+            color: #4ec0ca;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Arcade Header -->
+        <header>
+            <div class="badge">RETRO ARCADE HUB</div>
+            <h1 class="logo">OPEN<span>GAME</span></h1>
+            <p class="tagline">Play classic arcade games crafted in pure web tech. Pick your game below and beat the high score!</p>
+        </header>
+
+        <!-- Games Section Title -->
+        <div class="section-title">
+            <h2>🕹️ ARCADE CABINETS</h2>
+            <div class="games-count">2 GAMES READY</div>
+        </div>
+
+        <!-- Games Grid -->
+        <div class="games-grid">
+            
+            <!-- Flappy Bird Active Card -->
+            <a href="games/flappy-bird/index.html" class="game-card">
+                <div class="card-preview">
+                    <div class="preview-cloud cloud-1"></div>
+                    <div class="preview-cloud cloud-2"></div>
+                    <!-- Retro Yellow Bird Model -->
+                    <div class="bird-sprite">
+                        <div class="eye"><div class="pupil"></div></div>
+                        <div class="beak"></div>
+                        <div class="wing"></div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="game-title">
+                        FLAPPY BIRD
+                        <span class="game-status">● READY</span>
+                    </div>
+                    <p class="game-description">
+                        Navigate through the retro green pipes. Features smooth physics, particle sparks, and authentic 8-bit Web Audio synth sounds.
+                    </p>
+                    <div class="card-footer">
+                        <div class="features-tags">🔊 8-Bit Audio</div>
+                        <div class="play-btn">PLAY NOW ▶</div>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Space Shooter Active Card -->
+            <a href="games/space-shooter/index.html" class="game-card">
+                <div class="card-preview" style="background: radial-gradient(circle, #1a1638 0%, #080914 100%);">
+                    <div class="ship-sprite">
+                        <svg viewBox="0 0 40 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 2L36 38L28 32L20 35L12 32L4 38L20 2Z" fill="#0b1a30" stroke="#00f3ff" stroke-width="2.5" stroke-linejoin="round"/>
+                            <path d="M20 12L23 22H17L20 12Z" fill="#fff"/>
+                            <circle cx="20" cy="38" r="3" fill="#ff0055" filter="drop-shadow(0 0 6px #ff0055)"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="game-title">
+                        NEON COMMANDER
+                        <span class="game-status">● READY</span>
+                    </div>
+                    <p class="game-description">
+                        Glide your neon starship with the mouse. Blast enemy fleets, grab weapon power-ups, and survive infinite bullet-hell waves.
+                    </p>
+                    <div class="card-footer">
+                        <div class="features-tags">🚀 Space Shooter</div>
+                        <div class="play-btn">PLAY NOW ▶</div>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Placeholder 2: Coming Soon -->
+            <div class="game-card coming-soon">
+                <div class="card-preview">
+                    <div class="lock-icon">🔒</div>
+                </div>
+                <div class="card-body">
+                    <div class="game-title">
+                        RETRO SNAKE
+                        <span class="game-status" style="color:#777; background:#1b1d2f; border-color:#2a2e47;">SOON</span>
+                    </div>
+                    <p class="game-description">
+                        Slither, eat apples, and grow without crashing into walls or your own tail in this 90s classic.
+                    </p>
+                    <div class="card-footer">
+                        <div class="features-tags">🐍 Grid Arcade</div>
+                        <span style="font-size:10px; color:#555d82; font-family:'Press Start 2P', monospace;">LOCKED</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            OPENGAME ARCADE PORTAL<br>
+            POWERED BY <span>OPENCODE</span>
+        </footer>
+    </div>
+
+</body>
+</html>
